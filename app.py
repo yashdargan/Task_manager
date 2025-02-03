@@ -18,4 +18,27 @@ with app.app_context():
     db.create_all()
 
 
+@app.route('/')
+def home():
+    return jsonify({'message':'Working it Home page!!!'})
 
+@app.route('/task',methods=['GET','POST'])
+def tasks_list():
+    if request.method == 'GET'
+        tasks = Task.query.all()
+        result = [{'id':task.id,'title':task.title,'description':task.description,'due_date':task.due_date,'completed':task.completed}
+                   for task in tasks
+                 ]
+        return jsonify(result)
+    if request.method == 'POST':
+        data = request.get_json()
+        if data:
+            new_task = Task(
+            title = data['title'],
+            description = data.get('description',''),
+            due_date = data.get('due_date',None),
+            completed = data.get('completed',default=False)
+            )
+            db.session.add(new_task)
+            db.session.commit()
+            return jsonify({'message':'Task Added Suceesfully!!!'}),201
