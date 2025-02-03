@@ -2,12 +2,12 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
-app.config['SESSION_DATABASE_URI'] = 'sqlite:///task.db'
-app.config['SESSION_TRACK_MODIFICATION'] = False
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///task.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATION'] = False
 
 db = SQLAlchemy(app)
 
-class Task(db.model):
+class Task(db.Model):
     id = db.Column(db.Integer,primary_key=True)
     title = db.Column(db.String(100),nullable=False)
     description = db.Column(db.String(250))
@@ -24,7 +24,7 @@ def home():
 
 @app.route('/task',methods=['GET','POST'])
 def tasks_list():
-    if request.method == 'GET'
+    if request.method == 'GET':
         tasks = Task.query.all()
         result = [{'id':task.id,'title':task.title,'description':task.description,'due_date':task.due_date,'completed':task.completed}
                    for task in tasks
@@ -37,8 +37,10 @@ def tasks_list():
             title = data['title'],
             description = data.get('description',''),
             due_date = data.get('due_date',None),
-            completed = data.get('completed',default=False)
             )
             db.session.add(new_task)
             db.session.commit()
             return jsonify({'message':'Task Added Suceesfully!!!'}),201
+
+if __name__ == "__main__":
+    app.run(debug=True)
