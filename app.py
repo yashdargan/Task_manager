@@ -1,10 +1,13 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from apscheduler.schedulers.background import BackgroundScheduler
+from datetime import datetime, timedelta
+
 
 # Configration
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///task.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATION'] = False
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 #intitalize db
 db = SQLAlchemy(app)
@@ -20,6 +23,28 @@ class Task(db.Model):
 #Database creation
 with app.app_context():
     db.create_all()
+
+#Schelduler Setup
+scheduler = BackgroundScheduler()
+scheduler.start()
+
+#Task Remender Function
+def set_task_reminder(task_id):
+    task = Task.query.get(task_id)
+    if task and not task.completed:
+        print(f"⏰ Reminder: '{task.title}' is due soon!")
+
+#Daily Summery
+def daily_summery():
+    today = datetime.now().strftime("%Y-%m-%d")
+    tasks = Task.query.filter(Task.due_date.like(f"{today}"), Task.completed==False).all()
+    if tasks:
+        print("📋 Daily Summary:")
+        for task in tasks:
+            print(f"- {task.title} (Due: {task.due_date})")
+    else:
+        print("✅ All tasks for today are completed!")
+
 
 #home API route
 @app.route('/')
@@ -45,9 +70,22 @@ def tasks_list():
             description = data.get('description',''),
             due_date = data.get('due_date',None),
             )
+
+        #scheduler remendir if due date/Time is set
+            if new_task.due_date:
+                due_datetime = datetime.strptime(new_task.due_date,"%Y-%m-%d %H:%M")
+                reminder_time = due_datetime - timedelta(minutes=1)
+                if reminder_time > datetime.now():
+                    scheduler.add_job(set_task_reminder,'date',run_date=reminder_time,args=[new_task.id])
+            
             db.session.add(new_task)
             db.session.commit()
             return jsonify({'message':'Task Added Suceesfully!!!'}),201
+        
+
+
+
+
 #Task API route - Specific operation(PUT,DELETE)
 @app.route('/task/<int:task_id>',methods=['PUT','DELETE'])
 def task_edition(task_id):
